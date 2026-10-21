@@ -12,6 +12,7 @@ import com.orion.visor.module.product.model.resp.ProductLineResp;
 import com.orion.visor.module.product.service.ProductLineService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import javax.annotation.Resource;
@@ -34,6 +35,7 @@ public class ProductLineServiceImpl implements ProductLineService {
     private ProductLineMapper productLineMapper;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createProductLine(ProductLineCreateReq req) {
         // 1. 校验编码唯一
         validateCodeUnique(req.getCode(), null);
@@ -50,6 +52,7 @@ public class ProductLineServiceImpl implements ProductLineService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateProductLine(ProductLineUpdateReq req) {
         // 1. 校验存在
         ProductLineDO existing = validateExists(req.getId());
@@ -57,7 +60,12 @@ public class ProductLineServiceImpl implements ProductLineService {
         validateStatus(req.getStatus());
         // 3. 更新
         ProductLineDO update = new ProductLineDO();
-        ProductLineConvert.INSTANCE.convert(req, update);
+        update.setId(req.getId());
+        if (req.getName() != null) update.setName(req.getName());
+        if (req.getDescription() != null) update.setDescription(req.getDescription());
+        if (req.getStatus() != null) update.setStatus(req.getStatus());
+        if (req.getOwnerId() != null) update.setOwnerId(req.getOwnerId());
+        if (req.getSort() != null) update.setSort(req.getSort());
         productLineMapper.updateById(update);
         log.info("[updateProductLine] 产品线更新成功, id={}", req.getId());
     }

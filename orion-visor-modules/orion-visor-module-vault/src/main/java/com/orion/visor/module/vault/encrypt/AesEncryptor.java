@@ -35,32 +35,58 @@ public class AesEncryptor {
     @Value("${orion.visor.vault.aes-key:}")
     private String aesKeyConfig;
 
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
+
     private SecretKeySpec secretKey;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @PostConstruct
     public void init() {
         String key = aesKeyConfig;
+        boolean isProd = "prod".equals(activeProfile);
+
         if (key == null || key.isEmpty()) {
-            // 开发环境兜底：自动生成 32 字节密钥
+            if (isProd) {
+                // 生产环境必须配置密钥，否则启动失败
+                throw new IllegalStateException(
+                    "生产环境必须配置 orion.visor.vault.aes-key (32字节Base64编码密钥)");
+            }
+            // 开发环境兜底：自动生成 32 字节随机密钥
             byte[] keyBytes = new byte[32];
             secureRandom.nextBytes(keyBytes);
             key = Base64.getEncoder().encodeToString(keyBytes);
             log.warn("[AesEncryptor] 未配置 orion.visor.vault.aes-key，已自动生成临时密钥 (仅限开发环境!)");
         }
-        // 确保密钥长度为 32 字节 (AES-256)
-        byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
-        if (keyBytes.length < 32) {
-            byte[] padded = new byte[32];
-            System.arraycopy(keyBytes, 0, padded, 0, Math.min(keyBytes.length, 32));
-            keyBytes = padded;
-        } else if (keyBytes.length > 32) {
-            byte[] trimmed = new byte[32];
-            System.arraycopy(keyBytes, 0, trimmed, 0, 32);
-            keyBytes = trimmed;
+
+        // 尝试 Base64 解码，解码失败则使用 UTF-8 字节
+        byte[] keyBytes;
+        try {
+            keyBytes = Base64.getDecoder().decode(key);
+        } catch (IllegalArgumentException e) {
+            // 非 Base64 编码，使用原始字节
+            keyBytes = key.getBytes(StandardCharsets.UTF_8);
         }
+
+        // AES-256 要求密钥必须为 32 字节
+        // 安全处理：不使用零填充，密钥长度不匹配则抛异常
+        if (keyBytes.length != 32) {
+            if (isProd) {
+                throw new IllegalStateException(
+                    "AES密钥必须为32字节(Base64解码后)，当前: " + keyBytes.length + " 字节");
+            }
+            // 开发环境：使用 SHA-256 派生密钥而非零填充
+            try {
+                java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+                keyBytes = digest.digest(key.getBytes(StandardCharsets.UTF_8));
+                log.warn("[AesEncryptor] 密钥长度不足32字节，已使用SHA-256派生密钥 (仅限开发环境!)");
+            } catch (Exception e) {
+                throw new IllegalStateException("密钥派生失败", e);
+            }
+        }
+
         secretKey = new SecretKeySpec(keyBytes, ALGORITHM);
-        log.info("[AesEncryptor] AES-256-GCM 加密组件初始化完成");
+        log.info("[AesEncryptor] AES-256-GCM 加密组件初始化完成, profile={}", activeProfile);
     }
 
     /**

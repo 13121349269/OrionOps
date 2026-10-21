@@ -21,6 +21,7 @@ import com.orion.visor.module.vault.model.resp.VaultSecretResp;
 import com.orion.visor.module.vault.service.VaultService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -56,6 +57,7 @@ public class VaultServiceImpl implements VaultService {
     private VaultAuditLogger auditLogger;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createSecret(VaultSecretCreateReq req) {
         // 1. 校验名称唯一
         VaultSecretDO existing = vaultSecretMapper.selectByName(req.getName());
@@ -167,6 +169,7 @@ public class VaultServiceImpl implements VaultService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void rotateSecret(VaultRotateReq req) {
         // 1. 校验存在
         VaultSecretDO existing = validateExists(req.getId());

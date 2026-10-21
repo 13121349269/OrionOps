@@ -1,5 +1,6 @@
 # OrionOps 运维管理平台 - Docker Compose
 # 包含: MySQL + Redis + InfluxDB + 应用本体
+# 安全注意: 生产环境请使用 .env 文件管理密码，不要直接硬编码
 
 services:
   # ---- MySQL ----
@@ -8,19 +9,17 @@ services:
     container_name: orionops-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: OrionOps@2026
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-OrionOps@2026}
       MYSQL_DATABASE: orion_visor
-      MYSQL_CHARSET: utf8mb4
-      MYSQL_COLLATION: utf8mb4_unicode_ci
       TZ: Asia/Shanghai
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./sql:/docker-entrypoint-initdb.d
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pOrionOps@2026"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-OrionOps@2026}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -33,12 +32,12 @@ services:
     container_name: orionops-redis
     restart: always
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --requirepass OrionOps@2026
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-OrionOps@2026}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "OrionOps@2026", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-OrionOps@2026}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -51,14 +50,14 @@ services:
     container_name: orionops-influxdb
     restart: always
     ports:
-      - "8086:8086"
+      - "127.0.0.1:8086:8086"
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: OrionOps@2026
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USERNAME:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD:-OrionOps@2026}
       DOCKER_INFLUXDB_INIT_ORG: orionops
       DOCKER_INFLUXDB_INIT_BUCKET: orion_visor
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: orionops-influxdb-token-2026
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:-orionops-influxdb-token-2026}
     volumes:
       - influxdb_data:/var/lib/influxdb2
     healthcheck:
@@ -69,9 +68,29 @@ services:
     networks:
       - orionops-net
 
+  # ---- Docker Socket Proxy (安全替代直接挂载 docker.sock) ----
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: orionops-docker-proxy
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      CONTAINERS: 1
+      POST: 1
+      IMAGES: 1
+      NETWORKS: 1
+      VOLUMES: 1
+      EXEC: 0
+      ALLOW_START: 1
+      ALLOW_STOP: 1
+      ALLOW_RESTART: 1
+    networks:
+      - orionops-net
+
   # ---- OrionOps 应用 ----
   orionops-app:
-    image: openjdk:8-jdk-alpine
+    image: eclipse-temurin:8-jre-alpine
     container_name: orionops-app
     restart: always
     depends_on:
@@ -87,21 +106,22 @@ services:
       # MySQL
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/orion_visor?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: OrionOps@2026
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-OrionOps@2026}
       # Redis
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
-      SPRING_REDIS_PASSWORD: OrionOps@2026
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD:-OrionOps@2026}
       # InfluxDB
       SPRING_INFLUXDB_URL: http://influxdb:8086
-      SPRING_INFLUXDB_TOKEN: orionops-influxdb-token-2026
+      SPRING_INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:-orionops-influxdb-token-2026}
       SPRING_INFLUXDB_ORG: orionops
       SPRING_INFLUXDB_BUCKET: orion_visor
-      # Vault加密密钥 (生产环境必须更换)
-      ORION_VISOR_VAULT_AES_KEY: OrionOps-Production-AES-Key-2026-ChangeMe!!
+      # Vault加密密钥 (生产环境必须更换! 必须为32字节Base64)
+      ORION_VISOR_VAULT_AES_KEY: ${VAULT_AES_KEY:-OrionOps-Production-AES-Key-2026}
+      # Docker Socket Proxy 地址
+      DOCKER_HOST: tcp://docker-socket-proxy:2375
     volumes:
       - ./app:/app
-      - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /app
     command: java -jar -Xms512m -Xmx1024m -Duser.timezone=Asia/Shanghai orion-visor-launch.jar
     ports:

@@ -70,13 +70,25 @@ public class DockerClientFactory {
     }
 
     /**
-     * 移除客户端缓存
+     * 移除客户端缓存并关闭连接
      */
     public void remove(Long hostId) {
         String prefix = hostId + ":";
+        // 先收集 key 再批量删除，避免并发修改
+        java.util.List<String> keysToRemove = new java.util.ArrayList<>();
         clientCache.keySet().stream()
                 .filter(k -> k.startsWith(prefix))
-                .forEach(clientCache::remove);
+                .forEach(keysToRemove::add);
+        for (String key : keysToRemove) {
+            DockerClient client = clientCache.remove(key);
+            if (client != null) {
+                try {
+                    client.close();
+                } catch (Exception e) {
+                    log.warn("[remove] DockerClient关闭失败, key={}", key, e);
+                }
+            }
+        }
     }
 
     /**
