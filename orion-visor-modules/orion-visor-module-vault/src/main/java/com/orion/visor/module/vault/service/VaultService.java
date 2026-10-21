@@ -1,6 +1,7 @@
 package com.orion.visor.module.vault.service;
 
 import com.orion.visor.module.vault.model.req.VaultRevealReq;
+import com.orion.visor.module.vault.model.req.VaultRotateReq;
 import com.orion.visor.module.vault.model.req.VaultSecretCreateReq;
 import com.orion.visor.module.vault.model.req.VaultSecretPageReq;
 import com.orion.visor.module.vault.model.req.VaultSecretUpdateReq;
@@ -48,9 +49,9 @@ public interface VaultService {
     VaultSecretRevealResp revealSecret(VaultRevealReq req);
 
     /**
-     * 轮换密钥
+     * 轮换密钥 (需二次验证)
      */
-    void rotateSecret(Long id, String newSecretValue);
+    void rotateSecret(VaultRotateReq req);
 
     /**
      * 查询密钥访问日志

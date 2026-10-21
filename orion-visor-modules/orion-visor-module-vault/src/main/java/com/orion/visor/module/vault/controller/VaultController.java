@@ -2,6 +2,7 @@ package com.orion.visor.module.vault.controller;
 
 import com.orion.visor.framework.common.pojo.CommonResult;
 import com.orion.visor.module.vault.model.req.VaultRevealReq;
+import com.orion.visor.module.vault.model.req.VaultRotateReq;
 import com.orion.visor.module.vault.model.req.VaultSecretCreateReq;
 import com.orion.visor.module.vault.model.req.VaultSecretPageReq;
 import com.orion.visor.module.vault.model.req.VaultSecretUpdateReq;
@@ -83,13 +84,10 @@ public class VaultController {
     }
 
     @PostMapping("/rotate")
-    @Operation(summary = "轮换密钥")
-    @Parameter(name = "id", description = "密钥ID", required = true)
-    @Parameter(name = "newValue", description = "新密钥值", required = true)
+    @Operation(summary = "轮换密钥 (需二次验证)")
     @PreAuthorize("@ss.hasPermission('ops:vault:secret:rotate')")
-    public CommonResult<Boolean> rotateSecret(@RequestParam("id") Long id,
-                                              @RequestParam("newValue") String newValue) {
-        vaultService.rotateSecret(id, newValue);
+    public CommonResult<Boolean> rotateSecret(@Valid @RequestBody VaultRotateReq req) {
+        vaultService.rotateSecret(req);
         return success(true);
     }
 

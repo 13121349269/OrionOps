@@ -110,18 +110,19 @@ public class JavaAgentServiceImpl implements JavaAgentService {
             throw ServiceException.of(JAVA_APP_DISABLED);
         }
 
-        try {
-            MBeanServerConnection connection = jmxConnectorManager.connect(app);
-            JvmSnapshotDO snapshot = collectMetrics(connection, appId);
-            jvmSnapshotMapper.insert(snapshot);
-            log.info("[collectSnapshot] 指标采集成功, appId={}", appId);
-            return JavaAppConvert.INSTANCE.convertSnapshot(snapshot);
-        } catch (ServiceException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("[collectSnapshot] 指标采集失败, appId={}", appId, e);
-            throw ServiceException.of(JMX_CONNECT_FAILED);
-        }
+        // 使用 executeWithConnection 确保 JMX 连接自动关闭，避免 RMI 资源泄露
+        JvmSnapshotDO snapshot = jmxConnectorManager.executeWithConnection(app, connection -> {
+            try {
+                return collectMetrics(connection, appId);
+            } catch (Exception e) {
+                log.error("[collectSnapshot] 指标采集失败, appId={}", appId, e);
+                throw new RuntimeException(e);
+            }
+        });
+
+        jvmSnapshotMapper.insert(snapshot);
+        log.info("[collectSnapshot] 指标采集成功, appId={}", appId);
+        return JavaAppConvert.INSTANCE.convertSnapshot(snapshot);
     }
 
     @Override

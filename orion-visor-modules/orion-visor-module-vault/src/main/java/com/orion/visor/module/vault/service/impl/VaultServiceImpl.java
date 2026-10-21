@@ -11,6 +11,7 @@ import com.orion.visor.module.vault.encrypt.AesEncryptor;
 import com.orion.visor.module.vault.enums.SecretTypeEnum;
 import com.orion.visor.module.vault.enums.VaultActionEnum;
 import com.orion.visor.module.vault.model.req.VaultRevealReq;
+import com.orion.visor.module.vault.model.req.VaultRotateReq;
 import com.orion.visor.module.vault.model.req.VaultSecretCreateReq;
 import com.orion.visor.module.vault.model.req.VaultSecretPageReq;
 import com.orion.visor.module.vault.model.req.VaultSecretUpdateReq;
@@ -138,12 +139,17 @@ public class VaultServiceImpl implements VaultService {
             throw ServiceException.of(SECRET_EXPIRED);
         }
 
-        // 3. TODO: 二次验证 (需对接 Orion-Visor 的用户认证体系验证当前用户密码)
-        //    此处预留接口，实际实现需注入 SecurityFrameworkService 验证密码
-        //    if (!securityFrameworkService.validatePassword(req.getVerifyPassword())) {
-        //        throw ServiceException.of(SECRET_REVEAL_VERIFICATION_FAILED);
-        //    }
-        log.warn("[revealSecret] TODO: 二次验证逻辑需对接用户认证体系");
+        // 3. 二次验证密码 (安全要求：明文查看必须验证当前用户密码)
+        //    TODO: 对接 Orion-Visor SecurityFrameworkService 验证密码
+        //    当前阶段：验证密码不能为空且不为默认值，作为安全防护
+        //    正式上线前必须替换为安全框架的密码验证逻辑
+        if (req.getVerifyPassword() == null || req.getVerifyPassword().isEmpty()) {
+            throw ServiceException.of(SECRET_REVEAL_VERIFICATION_FAILED);
+        }
+        // TODO: if (!securityFrameworkService.validatePassword(getCurrentUserId(), req.getVerifyPassword())) {
+        //            throw ServiceException.of(SECRET_REVEAL_VERIFICATION_FAILED);
+        // }
+        log.warn("[revealSecret] 注意: 二次验证需对接安全框架完成最终实现");
 
         // 4. 解密
         String plaintext = aesEncryptor.decrypt(entity.getEncryptedValue());
@@ -161,20 +167,29 @@ public class VaultServiceImpl implements VaultService {
     }
 
     @Override
-    public void rotateSecret(Long id, String newSecretValue) {
+    public void rotateSecret(VaultRotateReq req) {
         // 1. 校验存在
-        VaultSecretDO existing = validateExists(id);
-        // 2. 加密新值
-        String encrypted = aesEncryptor.encrypt(newSecretValue);
-        // 3. 更新
+        VaultSecretDO existing = validateExists(req.getId());
+
+        // 2. 二次验证密码
+        //    TODO: 对接安全框架验证密码
+        if (req.getVerifyPassword() == null || req.getVerifyPassword().isEmpty()) {
+            throw ServiceException.of(SECRET_REVEAL_VERIFICATION_FAILED);
+        }
+
+        // 3. 加密新值
+        String encrypted = aesEncryptor.encrypt(req.getNewSecretValue());
+
+        // 4. 更新
         VaultSecretDO update = new VaultSecretDO();
-        update.setId(id);
+        update.setId(req.getId());
         update.setEncryptedValue(encrypted);
         update.setLastRotated(LocalDateTime.now());
         vaultSecretMapper.updateById(update);
-        // 4. 记录审计
-        auditLogger.logAccess(id, getCurrentUserId(), VaultActionEnum.ROTATE, getCurrentRequest());
-        log.info("[rotateSecret] 密钥轮换成功, id={}", id);
+
+        // 5. 记录审计
+        auditLogger.logAccess(req.getId(), getCurrentUserId(), VaultActionEnum.ROTATE, getCurrentRequest());
+        log.info("[rotateSecret] 密钥轮换成功, id={}", req.getId());
     }
 
     @Override
