@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.orion</groupId>
+        <artifactId>orion-visor</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>orion-visor-module-product</artifactId>
+    <name>${project.artifactId}</name>
+    <description>产品线 + 项目管理模块</description>
+
+    <dependencies>
+        <!-- 本项目公共模块 -->
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-common</artifactId>
+        </dependency>
+
+        <!-- 框架层 -->
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-spring-boot-starter-mybatis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-spring-boot-starter-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-spring-boot-starter-swagger</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-spring-boot-starter-biz-operator-log</artifactId>
+        </dependency>
+
+        <!-- MapStruct (由 dependencies BOM 管理版本) -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+    </dependencies>
+</project>

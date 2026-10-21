@@ -1,0 +1,36 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Build
+target/
+build/
+dist/
+*.class
+*.jar
+*.war
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+*.pem
+*.key
+
+# Docker
+docker-data/
+
+# Frontend (预留)
+node_modules/
+orion-visor-ui/dist/
