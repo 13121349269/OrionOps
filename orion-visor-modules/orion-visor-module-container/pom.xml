@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.orion</groupId>
+        <artifactId>orion-visor</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>orion-visor-module-container</artifactId>
+    <name>${project.artifactId}</name>
+    <description>Docker容器管理模块 - 容器/镜像/网络/卷可视化管理</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-spring-boot-starter-mybatis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-spring-boot-starter-swagger</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.orion</groupId>
+            <artifactId>orion-visor-spring-boot-starter-biz-operator-log</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+
+        <!-- docker-java SDK -->
+        <dependency>
+            <groupId>com.github.docker-java</groupId>
+            <artifactId>docker-java-core</artifactId>
+            <version>3.3.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.docker-java</groupId>
+            <artifactId>docker-java-transport-httpclient5</artifactId>
+            <version>3.3.6</version>
+        </dependency>
+    </dependencies>
+</project>
